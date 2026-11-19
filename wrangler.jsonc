@@ -1,0 +1,12 @@
+{
+  // Configurazione Cloudflare Workers: gioco statico + server delle stanze
+  "name": "cronache-di-aurora",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-06-01",
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+  "durable_objects": {
+    "bindings": [{ "name": "ROOMS", "class_name": "Room" }]
+  },
+  // "new_sqlite_classes": richiesto dal piano gratuito di Cloudflare
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }]
+}
