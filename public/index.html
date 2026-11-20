@@ -519,6 +519,9 @@ function building(c,ch,px,py,x,y){
    e nel foglio "Testi del gioco".
    ========================================================= */
 const TESTI=[
+ ['intro.benvenuto','Prof. Viola','Inizio partita','Nuova partita, prima di scegliere il nome',['Benvenuto nella regione di Aurora!','Qui persone e creature vivono insieme: esplorano, lottano e crescono fianco a fianco.','Io sono la Prof. Viola e studio il legame che le unisce.','Ma prima dimmi... come ti chiami?']],
+ ['intro.nome','Prof. Viola','Inizio partita','Domanda mentre scegli il nome',['Come ti chiami?']],
+ ['intro.saluto','Prof. Viola','Inizio partita','Dopo aver scelto il nome',['Piacere, {nome}! La tua avventura sta per cominciare.','Ti aspetto nel mio laboratorio!']],
  ['pippo.parla','Pippo (bambino)','Borgo Aurora','Quando gli parli',['Pippo: Il Bosco Sussurro è proprio qui a nord.',"Le creature selvatiche si nascondono nell'erba alta!"]],
  ['pippo.blocco','Pippo (bambino)','Borgo Aurora','Se provi a entrare nel bosco senza una creatura',['Pippo: Ehi, aspetta! Non entrare nel bosco senza una creatura!','Passa prima dal laboratorio della Prof. Viola, a sinistra.']],
  ['pescatore.parla','Pescatore','Borgo Aurora','Quando gli parli',["Pescatore: Quando piove, nel bosco spuntano creature d'acqua!",'E di notte... si dice appaia una creatura fatta di luce.']],
@@ -1351,9 +1354,9 @@ async function boot(){
   await newGame();return}}
 async function newGame(){G=newState('?');setupWorldData();
  const bd=push(new Static(c=>{const g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,'#1a1d3a');g.addColorStop(1,'#3a3470');c.fillStyle=g;c.fillRect(0,0,W,H);c.save();c.translate(W/2-24,30);c.scale(3,3);drawPerson(c,0,0,'down',LOOK.prof,0);c.restore();drawCreature(c,14,W/2+46,110,1)}));
- await say('Benvenuto nella regione di Aurora!','Qui persone e creature vivono insieme: esplorano, lottano e crescono fianco a fianco.','Io sono la Prof. Viola e studio il legame che le unisce.','Ma prima dimmi... come ti chiami?');
- const names=['Ale','Sara','Leo','Nina','Max','Gaia'];const i=await run(new Menu({items:names,x:W-70,y:8,w:62,cancel:false,under:c=>textBox(c,'Come ti chiami?')}));G.name=names[i];
- await say(`Piacere, ${G.name}! La tua avventura sta per cominciare.`,'Ti aspetto nel mio laboratorio!');pop(bd);
+ await say(...T('intro.benvenuto'));
+ const names=['Ale','Sara','Leo','Nina','Max','Gaia'];const i=await run(new Menu({items:names,x:W-70,y:8,w:62,cancel:false,under:c=>textBox(c,T1('intro.nome'))}));G.name=names[i];
+ await say(...T('intro.saluto'));pop(bd);
  push(WORLD);UI.banner={text:MAPS.lab.name,t:150};
  flow(async()=>{await run(new Anim(20,null,(c,t)=>{c.fillStyle=`rgba(0,0,0,${1-t})`;c.fillRect(0,0,W,H)}));await profFlow()})}
 
