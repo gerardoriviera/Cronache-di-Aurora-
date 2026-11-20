@@ -369,7 +369,7 @@ const MAPS={
  'T....................T',
  'TTTTTTTTTTTTTTTTTTTTTT'],
  warps:[{x:10,y:0,to:'bosco',tx:12,ty:28,dir:'up'},{x:11,y:0,to:'bosco',tx:13,ty:28,dir:'up'}],
- signs:{'12,5':['Borgo Aurora — dove ogni viaggio comincia.','Nord: Bosco Sussurro · Laboratorio Viola a ovest · Centro Cura a est']}},
+ signs:{'12,5':'cartello.borgo'}},
  bosco:{name:'Bosco Sussurro',theme:'out',rain:.3,rows:[
  'TTTTTTTTTTTTTTTTTTTTTTTTTT',
  'TTTTTTTTTTTTTTTTTTTTTTTTTT',
@@ -402,7 +402,7 @@ const MAPS={
  'TTTTTTTTTT..==..TTTTTTTTTT',
  'TTTTTTTTTTTT==TTTTTTTTTTTT'],
  warps:[{x:12,y:29,to:'borgo',tx:10,ty:1,dir:'down'},{x:13,y:29,to:'borgo',tx:11,ty:1,dir:'down'},{x:12,y:2,to:'grotta',tx:9,ty:13,dir:'up'},{x:13,y:2,to:'grotta',tx:10,ty:13,dir:'up'}],
- signs:{'7,24':['Bosco Sussurro. Nord: Grotta Eco.','Attenzione: di notte tra gli alberi appaiono creature luminose!']},
+ signs:{'7,24':'cartello.bosco'},
  enc:[{sp:7,min:3,max:6,w:40},{sp:8,min:3,max:6,w:30,time:'giorno'},{sp:8,min:3,max:6,w:20,time:'notte'},{sp:10,min:4,max:7,w:15},{sp:14,min:5,max:8,w:15,time:'notte'},{sp:3,min:4,max:6,w:14,rain:true}]},
  grotta:{name:'Grotta Eco',theme:'cave',rows:[
  'RRRRRRRRRRRRRRRRRRRR',
@@ -509,33 +509,133 @@ function building(c,ch,px,py,x,y){
 /* =========================================================
    NPC, OGGETTI, TRIGGER (assegnati alle mappe)
    ========================================================= */
+/* =========================================================
+   TESTI DEI PERSONAGGI
+   Ogni voce: [ID, Personaggio, Luogo, Quando appare, [righe]].
+   Le righe possono essere sostituite dal foglio Google collegato
+   (vedi /testi.csv nel server). Segnaposto: {nome} {creatura} {tipo}
+   {creatura_teo} {viste} {catturate} {legame} {oggetto} {quantita} {soldi}.
+   REGOLA: ogni nuovo personaggio con cui si può interagire va aggiunto qui
+   e nel foglio "Testi del gioco".
+   ========================================================= */
+const TESTI=[
+ ['pippo.parla','Pippo (bambino)','Borgo Aurora','Quando gli parli',['Pippo: Il Bosco Sussurro è proprio qui a nord.',"Le creature selvatiche si nascondono nell'erba alta!"]],
+ ['pippo.blocco','Pippo (bambino)','Borgo Aurora','Se provi a entrare nel bosco senza una creatura',['Pippo: Ehi, aspetta! Non entrare nel bosco senza una creatura!','Passa prima dal laboratorio della Prof. Viola, a sinistra.']],
+ ['pescatore.parla','Pescatore','Borgo Aurora','Quando gli parli',["Pescatore: Quando piove, nel bosco spuntano creature d'acqua!",'E di notte... si dice appaia una creatura fatta di luce.']],
+ ['livia.parla','Livia','Borgo Aurora','Quando le parli',['Livia: Al Centro Cura puoi far riposare la squadra gratis.','Il PC lì dentro ti dà accesso al Deposito delle creature.']],
+ ['gino.parla','Nonno Gino','Borgo Aurora','Quando gli parli',['Nonno Gino: Ai miei tempi bastava una Sfera e tanta pazienza.','Indebolisci la creatura e addormentala o paralizzala: la cattura sarà molto più facile!']],
+ ['cartello.borgo','Cartello','Borgo Aurora','Quando lo leggi',['Borgo Aurora: dove ogni viaggio comincia.','Nord: Bosco Sussurro · Laboratorio Viola a ovest · Centro Cura a est']],
+ ['prof.benvenuto','Prof. Viola','Laboratorio','Primo incontro, prima della scelta',['Prof. Viola: Eccoti, {nome}! Benvenuto nel mio laboratorio.','Su quel tavolo ci sono tre creature in cerca di un compagno di viaggio.',"Scegline una: sarà la tua prima compagna d'avventura!"]],
+ ['prof.scelta','Prof. Viola','Laboratorio','Domanda mentre scegli la creatura',['Quale creatura scegli?']],
+ ['prof.conferma','Prof. Viola','Laboratorio','Conferma della scelta',['Vuoi scegliere {creatura}, la creatura di tipo {tipo}?']],
+ ['prof.ricevuta','Prof. Viola','Laboratorio','Dopo la scelta',['{nome} ha ricevuto {creatura}!']],
+ ['teo.scelta','Rivale Teo','Laboratorio','Subito dopo la tua scelta',['Teo: Allora io prendo {creatura_teo}! Ha un vantaggio sul tuo, eh eh.','Teo: Dai, vediamo subito chi è il più forte!']],
+ ['teo.lab_sconfitto','Rivale Teo','Laboratorio','Se lo batti nella prima lotta',['Teo: Uffa! Ho scelto la creatura sbagliata?']],
+ ['teo.lab_vittoria','Rivale Teo','Laboratorio','Se vince lui la prima lotta',["Teo: Ah ah! Ho vinto io! Ma non te la prendere, è solo l'inizio."]],
+ ['prof.doni','Prof. Viola','Laboratorio','Dopo la prima lotta',['Prof. Viola: Che lotta emozionante! Ecco, prendete anche questi.']],
+ ['prof.enciclopedia','Prof. Viola','Laboratorio','Quando consegna Sfere e Pozioni',["Prof. Viola: E questa è l'Enciclopedia: registra ogni creatura che incontri o catturi."]],
+ ['teo.partenza','Rivale Teo','Laboratorio','Quando lascia il laboratorio',['Teo: Io parto subito! Ci vediamo nel bosco!']],
+ ['prof.consigli','Prof. Viola','Laboratorio','Fine del primo incontro',["Prof. Viola: A nord del borgo c'è il Bosco Sussurro. Indebolisci le creature e lancia una Sfera per catturarle.",'Premi MENU per vedere squadra, borsa, missioni e mappa. Buona fortuna!']],
+ ['prof.progresso','Prof. Viola','Laboratorio','Quando torni a parlarle',["Prof. Viola: Ciao {nome}! L'Enciclopedia segna {viste} creature viste e {catturate} catturate."]],
+ ['prof.consiglio_bosco','Prof. Viola','Laboratorio','Consiglio prima di battere Teo nel bosco',['Il Bosco Sussurro è perfetto per allenarsi. Ricorda: certe creature appaiono solo di notte o con la pioggia!']],
+ ['prof.consiglio_grotta','Prof. Viola','Laboratorio','Consiglio prima di battere Rocca',['Teo mi ha parlato di strani individui in grigio nella Grotta Eco. Porta con te una creatura di tipo Roccia: là dentro ci sono massi enormi.']],
+ ['prof.consiglio_leggenda','Prof. Viola','Laboratorio','Consiglio dopo aver battuto Rocca',["Hai fermato l'Ordine Grigio! Si dice che di notte, nella sala a ovest della grotta, appaia una luce leggendaria..."]],
+ ['prof.consiglio_finale','Prof. Viola','Laboratorio','Dopo aver catturato Aurorion',['Aurorion... incredibile! Sei un vero ricercatore di creature.']],
+ ['prof.riposo','Prof. Viola','Laboratorio','Prima di curare la squadra',['Lascia che la tua squadra si riposi un momento.']],
+ ['teo.lab','Rivale Teo','Laboratorio','Se gli parli prima della scelta',['Teo: La nonna dice che sono nato per diventare un campione!']],
+ ['assistente.parla','Assistente','Laboratorio','Quando le parli',['Assistente: Le creature si evolvono in modi diversi:',"raggiungendo un livello, con oggetti come la Pietra Tuono... o grazie a un'amicizia profonda."]],
+ ['lia.benvenuto','Infermiera Lia','Centro Cura','Quando le parli',['Infermiera Lia: Benvenuto al Centro Cura!']],
+ ['lia.domanda','Infermiera Lia','Centro Cura','Domanda Sì/No',['Vuoi che le tue creature si riposino?']],
+ ['lia.attesa','Infermiera Lia','Centro Cura','Mentre cura la squadra',['Affidami la tua squadra per un momento...']],
+ ['lia.fatto','Infermiera Lia','Centro Cura','Dopo la cura',['Ecco fatto! Le tue creature sono in piena forma.','Torna quando vuoi!']],
+ ['lia.rifiuto','Infermiera Lia','Centro Cura','Se rispondi No',['Torna quando vuoi!']],
+ ['lia.dopo_sconfitta','Infermiera Lia','Centro Cura','Quando perdi tutte le lotte',['Infermiera Lia: Le tue creature sono di nuovo in forma. Fai attenzione là fuori!']],
+ ['escursionista.parla','Escursionista','Centro Cura','Quando gli parli',['Escursionista: Il PC qui a sinistra gestisce il Deposito.','Puoi tenere in squadra al massimo sei creature: le altre aspettano lì al sicuro.']],
+ ['bea.benvenuto','Commessa Bea','Emporio','Quando le parli',["Commessa Bea: Benvenuto all'Emporio Aurora!"]],
+ ['bea.domanda','Commessa Bea','Emporio','Menu Compra/Vendi',['Commessa Bea: Come posso aiutarti?']],
+ ['bea.no_soldi','Commessa Bea','Emporio','Se non hai abbastanza soldi',['Non hai abbastanza soldi.']],
+ ['bea.acquisto','Commessa Bea','Emporio','Dopo un acquisto',['Ecco a te: {oggetto} x{quantita}. Grazie!']],
+ ['bea.regalo','Commessa Bea','Emporio','Se compri almeno 10 Sfere',['Per un acquisto così grande, ti regalo anche una Sfera Plus!']],
+ ['bea.niente','Commessa Bea','Emporio','Se non hai niente da vendere',['Non hai niente da vendere.']],
+ ['bea.vendita','Commessa Bea','Emporio','Dopo una vendita',['Hai venduto {oggetto} x{quantita} per {soldi} ✦.']],
+ ['bea.arrivederci','Commessa Bea','Emporio','Quando esci dal menu',['Commessa Bea: Torna presto!']],
+ ['cliente.parla','Cliente','Emporio','Quando le parli',['Cliente: Le Sfere Notte funzionano benissimo nelle grotte!','E le vitamine come la Proteina rafforzano le creature per sempre.']],
+ ['elda.lanterna','Nonna Elda','Casa di Elda','Prima visita',['Nonna Elda: Oh, un giovane allenatore! Sai, le grotte sono così buie...','Prendi questa vecchia lanterna. A me non serve più.']],
+ ['elda.lanterna_ricevuta','Nonna Elda','Casa di Elda','Dopo averti dato la Lanterna',['{nome} ha ricevuto la Lanterna!','Nonna Elda: Con questa vedrai molto meglio nella Grotta Eco.']],
+ ['elda.senza_creature','Nonna Elda','Casa di Elda','Se non hai creature',['Nonna Elda: Torna a trovarmi con una creatura, caro.']],
+ ['elda.legame','Nonna Elda','Casa di Elda','Visite successive',['Nonna Elda: Vediamo... {creatura} {legame}','Alcune creature si evolvono solo quando il legame è fortissimo. Falle lottare, falle crescere, portale a spasso!']],
+ ['elda.legame_1','Nonna Elda','Casa di Elda','Valore di {legame}: amicizia molto bassa',['ti conosce ancora poco.']],
+ ['elda.legame_2','Nonna Elda','Casa di Elda','Valore di {legame}: amicizia bassa',['si sta affezionando a te.']],
+ ['elda.legame_3','Nonna Elda','Casa di Elda','Valore di {legame}: amicizia media',['ti vuole molto bene.']],
+ ['elda.legame_4','Nonna Elda','Casa di Elda','Valore di {legame}: amicizia alta',['si fida ciecamente di te.']],
+ ['elda.legame_5','Nonna Elda','Casa di Elda','Valore di {legame}: amicizia massima',['ti adora!']],
+ ['nora.cura','Erborista Nora','Bosco Sussurro','Quando le parli',["Erborista Nora: Hai l'aria stanca! Le mie erbe del bosco fanno miracoli."]],
+ ['nora.fatto','Erborista Nora','Bosco Sussurro','Dopo la cura',['La tua squadra è di nuovo in piena forma!','Di notte qui intorno vedo spesso una lucina danzare tra gli alberi...']],
+ ['cartello.bosco','Cartello','Bosco Sussurro','Quando lo leggi',['Bosco Sussurro. Nord: Grotta Eco.','Attenzione: di notte tra gli alberi appaiono creature luminose!']],
+ ['marco.sfida','Esploratore Marco','Bosco Sussurro','Quando ti vede (inizio lotta)',['Esploratore Marco: Ti ho visto! Facciamo una lotta!']],
+ ['marco.sconfitto','Esploratore Marco','Bosco Sussurro','Quando lo batti',['Marco: Accidenti, sei forte!']],
+ ['marco.dopo','Esploratore Marco','Bosco Sussurro','Se gli parli dopo la lotta',['Marco: Esplorando trovi oggetti nascosti. Prova a premere A davanti a punti sospetti!']],
+ ['ida.sfida','Ricercatrice Ida','Bosco Sussurro','Quando ti vede (inizio lotta)',['Ricercatrice Ida: Sto studiando le creature elettriche. Mi aiuti con un test?']],
+ ['ida.sconfitto','Ricercatrice Ida','Bosco Sussurro','Quando la batti',['Ida: Dati interessantissimi!']],
+ ['ida.dopo','Ricercatrice Ida','Bosco Sussurro','Se le parli dopo la lotta',['Ida: Zappito si evolve solo con una Pietra Tuono.','Credo che ce ne sia una in una radura nascosta a est del bosco...']],
+ ['teo.bosco_sfida','Rivale Teo','Bosco Sussurro','Quando ti vede (inizio lotta)',['Teo: Eccoti finalmente! Mi sono allenato un sacco.','Vediamo chi è migliorato di più!']],
+ ['teo.bosco_sconfitto','Rivale Teo','Bosco Sussurro','Quando lo batti',['Teo: Di nuovo?! Non è possibile...']],
+ ['teo.bosco_dopo','Rivale Teo','Bosco Sussurro','Se gli parli dopo la lotta',['Teo: La grotta a nord è piena di tipi vestiti di grigio.',"Dicono di essere l'Ordine Grigio... stai attento."]],
+ ['recluta.sfida','Recluta Grigia','Grotta Eco','Quando ti vede (inizio lotta)',["Recluta Grigia: Alt! Questa grotta ora appartiene all'Ordine Grigio!",'Le creature rare di Aurora saranno nostre!']],
+ ['recluta.sconfitto','Recluta Grigia','Grotta Eco','Quando la batti',['Recluta: Grr... non finisce qui!']],
+ ['recluta.dopo','Recluta Grigia','Grotta Eco','Se le parli dopo la lotta',['Recluta: Il Comandante Rocca è oltre il grande masso a est.','Senza una creatura forte come la roccia non passerai mai!']],
+ ['rocca.sfida','Comandante Rocca','Grotta Eco','Quando ti vede (inizio lotta)',['Comandante Rocca: Hai superato il masso? Notevole.',"L'Ordine Grigio vuole la luce che dorme in questa grotta. Togliti di mezzo!"]],
+ ['rocca.sconfitto','Comandante Rocca','Grotta Eco','Quando lo batti',['Rocca: Impossibile... battuto da un ragazzino!']],
+ ['rocca.ritirata','Comandante Rocca','Grotta Eco','Dopo la lotta',['Comandante Rocca: Ordine Grigio, ritirata! Per ora...','Hai ottenuto il Distintivo Eco!','Una luce tenue sembra provenire dalla sala a ovest della grotta...']],
+ ['masso.blocco','Masso','Grotta Eco','Se non hai creature di tipo Roccia',['Un enorme masso blocca il passaggio.','Una creatura di tipo Roccia potrebbe riuscire a frantumarlo...']],
+ ['masso.domanda','Masso','Grotta Eco','Domanda Sì/No',['Un enorme masso blocca il passaggio. Vuoi che {creatura} provi a frantumarlo?']],
+ ['masso.frantumato','Masso','Grotta Eco','Dopo averlo frantumato',['{creatura} ha frantumato il masso! Il passaggio è libero.']],
+ ['aurorion.giorno','Aurorion','Grotta Eco','Se ti avvicini di giorno',['Una luce tenue danza tra le rocce... e svanisce.','Forse si mostra solo quando cala la notte.']],
+ ['aurorion.notte','Aurorion','Grotta Eco','Prima della lotta, di notte',['Una creatura splendente ti osserva in silenzio...',"Le sue ali brillano come l'aurora!"]],
+ ['aurorion.fuga','Aurorion','Grotta Eco','Se non lo catturi',['Aurorion è svanito in un lampo di luce... Forse tornerà la prossima notte.']],
+];
+const TESTI_IDX={};for(const t of TESTI)TESTI_IDX[t[0]]=t;
+const TESTI_OVR={};
+function T(id,v={}){const base=TESTI_IDX[id];const src=(TESTI_OVR[id]&&TESTI_OVR[id].length)?TESTI_OVR[id]:base?base[4]:['['+id+']'];
+ const vars=Object.assign({nome:G?G.name:''},v);return src.map(l=>String(l).replace(/\{(\w+)\}/g,(m,k)=>vars[k]!=null?String(vars[k]):m))}
+const T1=(id,v)=>T(id,v)[0]||'';
+function parseCSV(s){const rows=[];let row=[],f='',q=false;for(let i=0;i<s.length;i++){const ch=s[i];
+ if(q){if(ch==='"'){if(s[i+1]==='"'){f+='"';i++}else q=false}else f+=ch}
+ else if(ch==='"')q=true;else if(ch===','){row.push(f);f=''}else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&s[i+1]==='\n')i++;row.push(f);rows.push(row);row=[];f=''}else f+=ch}
+ if(f!==''||row.length){row.push(f);rows.push(row)}return rows}
+function applyTesti(csv){const rows=parseCSV(csv);if(!rows.length)return 0;const h=rows[0].map(x=>x.trim().toLowerCase());
+ const ci=h.indexOf('id'),ni=h.findIndex(x=>x==='n.'||x==='n'||x==='riga'),ti=h.indexOf('testo');if(ci<0||ti<0)return 0;
+ const groups={};for(const r of rows.slice(1)){const id=(r[ci]||'').trim(),tx=(r[ti]||'').trim();if(!id||!tx||!TESTI_IDX[id])continue;(groups[id]=groups[id]||[]).push([parseFloat(ni>=0?r[ni]:0)||0,tx.slice(0,400)])}
+ let n=0;for(const[id,l]of Object.entries(groups)){TESTI_OVR[id]=l.sort((a,b)=>a[0]-b[0]).slice(0,12).map(x=>x[1]);n++}return n}
+(async()=>{try{if(window.claude||!/^https?:$/.test(location.protocol))return;const r=await fetch('/testi.csv',{cache:'no-store'});if(!r.ok)return;const n=applyTesti(await r.text());if(n)console.log('Testi dal foglio:',n)}catch(e){}})();
+
 function setupWorldData(){
  const F=k=>G.flags[k];
  MAPS.borgo.npcs=[
-  {id:'bimbo',x:12,y:1,dir:'down',look:LOOK.kid,text:['Pippo: Il Bosco Sussurro è proprio qui a nord.','Le creature selvatiche si nascondono nell\'erba alta!']},
-  {id:'pesc',x:8,y:14,dir:'up',look:LOOK.fisher,text:['Pescatore: Quando piove, nel bosco spuntano creature d\'acqua!','E di notte... si dice appaia una creatura fatta di luce.']},
-  {id:'livia',x:19,y:6,dir:'left',look:LOOK.girl,text:['Livia: Al Centro Cura puoi far riposare la squadra gratis.','Il PC lì dentro ti dà accesso al Deposito delle creature.']},
-  {id:'gino',x:3,y:16,dir:'right',look:LOOK.old,text:['Nonno Gino: Ai miei tempi bastava una Sfera e tanta pazienza.','Indebolisci la creatura e addormentala o paralizzala: la cattura sarà molto più facile!']},
+  {id:'bimbo',x:12,y:1,dir:'down',look:LOOK.kid,say:'pippo.parla'},
+  {id:'pesc',x:8,y:14,dir:'up',look:LOOK.fisher,say:'pescatore.parla'},
+  {id:'livia',x:19,y:6,dir:'left',look:LOOK.girl,say:'livia.parla'},
+  {id:'gino',x:3,y:16,dir:'right',look:LOOK.old,say:'gino.parla'},
  ];
- MAPS.borgo.triggers=[10,11].map(x=>({x,y:1,cond:()=>!F('starter'),fn:async()=>{G.p.dir='down';await say('Pippo: Ehi, aspetta! Non entrare nel bosco senza una creatura!','Passa prima dal laboratorio della Prof. Viola, a sinistra.');G.p.y=2;G.p.tx=G.p.x;G.p.ty=2}}));
+ MAPS.borgo.triggers=[10,11].map(x=>({x,y:1,cond:()=>!F('starter'),fn:async()=>{G.p.dir='down';await say(...T('pippo.blocco'));G.p.y=2;G.p.tx=G.p.x;G.p.ty=2}}));
  MAPS.lab.npcs=[
   {id:'prof',x:4,y:2,dir:'down',look:LOOK.prof,script:profFlow},
-  {id:'teo',x:6,y:4,dir:'left',look:LOOK.rival,cond:()=>!F('teoLeft'),text:['Teo: La nonna dice che sono nato per diventare un campione!']},
-  {id:'aide',x:7,y:6,dir:'up',look:LOOK.sci,text:['Assistente: Le creature si evolvono in modi diversi:','raggiungendo un livello, con oggetti come la Pietra Tuono... o grazie a un\'amicizia profonda.']},
+  {id:'teo',x:6,y:4,dir:'left',look:LOOK.rival,cond:()=>!F('teoLeft'),say:'teo.lab'},
+  {id:'aide',x:7,y:6,dir:'up',look:LOOK.sci,say:'assistente.parla'},
  ];
- MAPS.center.npcs=[{id:'lia',x:4,y:1,dir:'down',look:LOOK.nurse,script:nurseFlow},{id:'vis',x:7,y:5,dir:'left',look:LOOK.hiker,text:['Escursionista: Il PC qui a sinistra gestisce il Deposito.','Puoi tenere in squadra al massimo sei creature: le altre aspettano lì al sicuro.']}];
- MAPS.shop.npcs=[{id:'bea',x:3,y:1,dir:'down',look:LOOK.clerk,script:shopFlow},{id:'cli',x:7,y:5,dir:'up',look:LOOK.girl,text:['Cliente: Le Sfere Notte funzionano benissimo nelle grotte!','E le vitamine come la Proteina rafforzano le creature per sempre.']}];
+ MAPS.center.npcs=[{id:'lia',x:4,y:1,dir:'down',look:LOOK.nurse,script:nurseFlow},{id:'vis',x:7,y:5,dir:'left',look:LOOK.hiker,say:'escursionista.parla'}];
+ MAPS.shop.npcs=[{id:'bea',x:3,y:1,dir:'down',look:LOOK.clerk,script:shopFlow},{id:'cli',x:7,y:5,dir:'up',look:LOOK.girl,say:'cliente.parla'}];
  MAPS.house.npcs=[{id:'elda',x:5,y:2,dir:'down',look:LOOK.old,script:eldaFlow}];
  MAPS.bosco.npcs=[
   {id:'nora',x:3,y:12,dir:'down',look:LOOK.herb,script:noraFlow},
-  {id:'marco',x:9,y:20,dir:'right',look:LOOK.hiker,trainer:{name:'Esploratore Marco',sight:3,money:12,team:[[7,5],[8,6]],intro:['Esploratore Marco: Ti ho visto! Facciamo una lotta!'],lose:'Marco: Accidenti, sei forte!',after:['Marco: Esplorando trovi oggetti nascosti. Prova a premere A davanti a punti sospetti!']}},
-  {id:'ida',x:16,y:13,dir:'left',look:LOOK.sci,trainer:{name:'Ricercatrice Ida',sight:3,money:15,team:[[10,7],[7,7]],intro:['Ricercatrice Ida: Sto studiando le creature elettriche. Mi aiuti con un test?'],lose:'Ida: Dati interessantissimi!',after:['Ida: Zappito si evolve solo con una Pietra Tuono.','Credo che ce ne sia una in una radura nascosta a est del bosco...']}},
-  {id:'teo2',x:14,y:5,dir:'left',look:LOOK.rival,cond:()=>F('starter'),trainer:{name:'Rivale Teo',sight:3,money:25,team:null,intro:['Teo: Eccoti finalmente! Mi sono allenato un sacco.','Vediamo chi è migliorato di più!'],lose:'Teo: Di nuovo?! Non è possibile...',after:['Teo: La grotta a nord è piena di tipi vestiti di grigio.','Dicono di essere l\'Ordine Grigio... stai attento.']}},
+  {id:'marco',x:9,y:20,dir:'right',look:LOOK.hiker,trainer:{name:'Esploratore Marco',sight:3,money:12,team:[[7,5],[8,6]],k:'marco'}},
+  {id:'ida',x:16,y:13,dir:'left',look:LOOK.sci,trainer:{name:'Ricercatrice Ida',sight:3,money:15,team:[[10,7],[7,7]],k:'ida'}},
+  {id:'teo2',x:14,y:5,dir:'left',look:LOOK.rival,cond:()=>F('starter'),trainer:{name:'Rivale Teo',sight:3,money:25,team:null,k:'teo.bosco'}},
  ];
  MAPS.bosco.objs=[{id:'b1',x:22,y:8,item:'sfera',qty:2},{id:'b2',x:22,y:15,item:'pietratuono'},{id:'h1',x:4,y:7,item:'pozione',qty:2,hidden:true},{id:'h2',x:20,y:16,item:'caramella',hidden:true},{id:'b3',x:5,y:23,item:'rimedio'},{id:'h3',x:20,y:22,item:'amuleto_linfa',hidden:true},{id:'b4',x:10,y:7,item:'proteina'}];
  MAPS.grotta.npcs=[
-  {id:'grunt',x:10,y:5,dir:'down',look:LOOK.grunt,cond:()=>!F('tr_rocca'),trainer:{name:'Recluta Grigia',sight:3,money:20,team:[[15,9],[7,10]],intro:['Recluta Grigia: Alt! Questa grotta ora appartiene all\'Ordine Grigio!','Le creature rare di Aurora saranno nostre!'],lose:'Recluta: Grr... non finisce qui!',after:['Recluta: Il Comandante Rocca è oltre il grande masso a est.','Senza una creatura forte come la roccia non passerai mai!']}},
-  {id:'rocca',x:16,y:2,dir:'down',look:LOOK.boss,cond:()=>!F('tr_rocca'),trainer:{name:'Comandante Rocca',sight:2,money:60,team:[[15,11],[12,11],[13,13]],intro:['Comandante Rocca: Hai superato il masso? Notevole.','L\'Ordine Grigio vuole la luce che dorme in questa grotta. Togliti di mezzo!'],lose:'Rocca: Impossibile... battuto da un ragazzino!',onWin:async()=>{G.badges.push('Distintivo Eco');sfx('item');await say('Comandante Rocca: Ordine Grigio, ritirata! Per ora...','Hai ottenuto il Distintivo Eco!','Una luce tenue sembra provenire dalla sala a ovest della grotta...')}}},
+  {id:'grunt',x:10,y:5,dir:'down',look:LOOK.grunt,cond:()=>!F('tr_rocca'),trainer:{name:'Recluta Grigia',sight:3,money:20,team:[[15,9],[7,10]],k:'recluta'}},
+  {id:'rocca',x:16,y:2,dir:'down',look:LOOK.boss,cond:()=>!F('tr_rocca'),trainer:{name:'Comandante Rocca',sight:2,money:60,team:[[15,11],[12,11],[13,13]],k:'rocca',onWin:async()=>{G.badges.push('Distintivo Eco');sfx('item');await say(...T('rocca.ritirata'))}}},
   {id:'aurorion',x:4,y:1,dir:'down',kind:'mon',cond:()=>F('tr_rocca')&&!F('aurorion'),script:aurorionFlow},
  ];
  MAPS.grotta.objs=[{id:'c1',x:17,y:9,item:'sferanotte',qty:2},{id:'c2',x:5,y:8,item:'superpozione',hidden:true},{id:'c3',x:2,y:2,item:'ferro'},{id:'c4',x:17,y:1,item:'amuleto_brace',hidden:true},{id:'c5',x:18,y:7,item:'amuleto_onda'},{id:'c6',x:6,y:12,item:'carbonio',hidden:true}];
@@ -763,7 +863,7 @@ function interact(){
  if(!n&&M.theme==='in'&&(ch==='c'||ch==='b'))n=npcAt(fx+dx,fy+dy);
  if(n)return()=>talk(n);
  const o=objAt(fx,fy,true);if(o)return()=>pickup(o);
- if(ch==='S'&&M.signs&&M.signs[fx+','+fy])return()=>say(...M.signs[fx+','+fy]);
+ if(ch==='S'&&M.signs&&M.signs[fx+','+fy])return()=>say(...T(M.signs[fx+','+fy]));
  if(ch==='P'&&M.theme==='in')return pcFlow;
  if(ch==='B'&&M.theme==='cave')return boulderFlow;
  if(ch==='~')return()=>say('L\'acqua è limpida e profonda. Non si può attraversare a nuoto.');
@@ -772,14 +872,14 @@ function interact(){
 async function talk(n){if(n.kind!=='mon')n.dir=OPP[G.p.dir];
  if(n.script)return n.script(n);
  if(n.trainer&&!G.flags['tr_'+n.id])return trainerTalk(n);
- await say(...(n.trainer?n.trainer.after:n.text))}
+ await say(...(n.trainer?T(n.trainer.k+(n.trainer.k.includes('.')?'_dopo':'.dopo')):T(n.say)))}
 async function spotted(n){sfx('enc');UI.emote=n;await wait(40);UI.emote=null;const[dx,dy]=DV[n.dir];
  while(Math.abs(G.p.x-n.x)+Math.abs(G.p.y-n.y)>1){await run(new Anim(10,t=>{n.ox=dx*TS*t;n.oy=dy*TS*t}));n.x+=dx;n.y+=dy;n.ox=n.oy=0}
  G.p.dir=OPP[n.dir];await trainerTalk(n)}
-async function trainerTalk(n){const T=n.trainer;await say(...T.intro);
- let team=T.team;if(n.id==='teo2'){const s=G.flags.rivalSp||3;team=[[7,9],[8,9],[s,11]]}
- const r=await battle({trainer:{name:T.name,team,money:T.money,lose:T.lose}});
- if(r==='win'){G.flags['tr_'+n.id]=true;if(T.onWin)await T.onWin();else if(T.after)await say(...T.after)}
+async function trainerTalk(n){const TR=n.trainer,K=TR.k,sep=K.includes('.')?'_':'.';await say(...T(K+sep+'sfida'));
+ let team=TR.team;if(n.id==='teo2'){const s=G.flags.rivalSp||3;team=[[7,9],[8,9],[s,11]]}
+ const r=await battle({trainer:{name:TR.name,team,money:TR.money,lose:T(K+sep+'sconfitto')}});
+ if(r==='win'){G.flags['tr_'+n.id]=true;if(TR.onWin)await TR.onWin();else await say(...T(K+sep+'dopo'))}
  else if(r==='lose')await whiteout()}
 async function pickup(o){G.flags['it_'+o.id]=true;addItem(o.item,o.qty||1);sfx('item');await say((o.hidden?'Qualcosa luccica... ':'')+`${G.name} ha trovato ${ITEMS[o.item].name}${(o.qty||1)>1?' x'+o.qty:''}!`)}
 async function doWarp(w){if(w.to==='__ret'){const r=G.ret;await changeMap(r.map,r.x,r.y,'down');return}if(w.ret)G.ret=w.ret;await changeMap(w.to,w.tx,w.ty,w.dir)}
@@ -790,7 +890,7 @@ async function changeMap(to,x,y,dir){
  UI.banner={text:M.name,t:150};saveGame();
  await run(new Anim(10,null,(c,t)=>{c.fillStyle=`rgba(0,0,0,${1-t})`;c.fillRect(0,0,W,H)}))}
 async function wildFlow(mon){const r=await battle({wild:mon});if(r==='lose')await whiteout()}
-async function whiteout(){G.money=Math.floor(G.money/2);await say(`${G.name} ha perso metà dei suoi soldi...`,`${G.name} torna di corsa al Centro Cura!`);healAll();G.ret={map:'borgo',x:15,y:5};await changeMap('center',4,3,'up');await say('Infermiera Lia: Le tue creature sono di nuovo in forma. Fai attenzione là fuori!')}
+async function whiteout(){G.money=Math.floor(G.money/2);await say(`${G.name} ha perso metà dei suoi soldi...`,`${G.name} torna di corsa al Centro Cura!`);healAll();G.ret={map:'borgo',x:15,y:5};await changeMap('center',4,3,'up');await say(...T('lia.dopo_sconfitta'))}
 
 function drawWorld(c){
  const M=map(),p=G.p,mw=M.w*TS,mh=M.h*TS;
@@ -932,7 +1032,7 @@ async function handleFaints(B){
   const xp=Math.max(1,Math.floor(SP(f).exp*f.lvl/4*(B.wild?1:1.5)));
   if(!B.duel){if(allyUp(B))B.ally.xp+=xp;for(const i of[...B.part]){const m=G.party[i];if(m&&m.hp>0){m.friend=Math.min(255,m.friend+1);await gainExp(m,xp)}}}
   if(!B.wild&&B.fi<B.foes.length-1){B.fi++;B.st.f=freshSt();B.part=new Set([B.pi]);dexSee(bmon(B,'f').sp);await bmsg(`${B.tr.name} manda in campo ${nm(bmon(B,'f'))}!`,45);await sendOut(B,'f')}
-  else{if(B.duel){await bmsg(`Hai vinto la sfida contro ${B.tr.name}!`,50)}else if(!B.wild){const money=B.tr.money*Math.max(...B.foes.map(m=>m.lvl));G.money+=money;await bmsg(`Hai sconfitto ${B.tr.name}!`,50);if(B.tr.lose)await bmsg(B.tr.lose,60);await bmsg(`Ricevi ${money} ✦ come premio.`,50)}return'win'}}
+  else{if(B.duel){await bmsg(`Hai vinto la sfida contro ${B.tr.name}!`,50)}else if(!B.wild){const money=B.tr.money*Math.max(...B.foes.map(m=>m.lvl));G.money+=money;await bmsg(`Hai sconfitto ${B.tr.name}!`,50);if(B.tr.lose)for(const l of[].concat(B.tr.lose))await bmsg(l,60);await bmsg(`Ricevi ${money} ✦ come premio.`,50)}return'win'}}
  if(B.ally&&!B.ally.out&&B.ally.mon.hp<=0){sfx('faint');await run(new Anim(18,t=>{B.vis.a.dy=t*26;B.vis.a.alpha=1-t}));B.ally.out=true;await bmsg(`${lbl(B,'a')} è esausto!`,50)}
  const p=bmon(B,'p');
  if(p.hp<=0){sfx('faint');await run(new Anim(18,t=>{B.vis.p.dy=t*26;B.vis.p.alpha=1-t}));B.vis.p.hidden=true;await bmsg(`${nm(p)} è esausto!`,50);
@@ -1104,29 +1204,29 @@ async function applyItem(m,id,inB){const it=ITEMS[id],mx=maxHp(m),none=()=>msg('
 class Qty{constructor(max,price,label){this.n=1;this.max=Math.max(1,Math.min(99,max));this.price=price;this.label=label}
  update(){if(Input.rep('up'))this.n=this.n>=this.max?1:this.n+1;if(Input.rep('down'))this.n=this.n<=1?this.max:this.n-1;if(Input.rep('right'))this.n=Math.min(this.max,this.n+10);if(Input.rep('left'))this.n=Math.max(1,this.n-10);if(Input.pressed.a){sfx('ok');this.resolve(this.n)}if(Input.pressed.b){sfx('back');this.resolve(0)}}
  draw(c){textBox(c,`${this.label}: quanti? (▲▼ ±1, ◀▶ ±10)`);box(c,W-96,112,90,26,true);txt(c,'x'+String(this.n).padStart(2,'0'),W-88,120,'#fff',9,{b:true});txt(c,`${this.n*this.price} ✦`,W-12,121,'#ffd166',8,{b:true,al:'right'})}}
-async function shopFlow(){await say('Commessa Bea: Benvenuto all\'Emporio Aurora!');
- while(true){const i=await run(new Menu({items:['Compra','Vendi','Esci'],x:W-80,y:70,w:74,under:c=>textBox(c,'Commessa Bea: Come posso aiutarti?')}));
+async function shopFlow(){await say(...T('bea.benvenuto'));
+ while(true){const i=await run(new Menu({items:['Compra','Vendi','Esci'],x:W-80,y:70,w:74,under:c=>textBox(c,T1('bea.domanda'))}));
   if(i===0){let sel=0;while(true){const me=new Menu({items:SHOP.map(k=>({t:ITEMS[k].name,r:ITEMS[k].price+' ✦'})),x:4,y:18,w:232,maxRows:9,sel,full:true,under:c=>bagBg(c,'Compra'),over:(c,me)=>{box(c,4,152,232,36,true);const k=SHOP[me.sel];wrap(ITEMS[k].desc,160,7).forEach((l,j)=>txt(c,l,10,157+j*9,'#fff',7));txt(c,`Hai: ${G.bag[k]||0}`,228,157,'#ffd166',7,{al:'right'})}});
     const k=await run(me);sel=me.sel;if(k<0)break;const id=SHOP[k],pr=ITEMS[id].price;
-    if(G.money<pr){const bd=push(new Static(c=>bagBg(c,'Compra')));await say('Non hai abbastanza soldi.');pop(bd);continue}
+    if(G.money<pr){const bd=push(new Static(c=>bagBg(c,'Compra')));await say(...T('bea.no_soldi'));pop(bd);continue}
     const bd=push(new Static(c=>bagBg(c,'Compra')));const n=await run(new Qty(Math.floor(G.money/pr),pr,ITEMS[id].name));
-    if(n>0){G.money-=n*pr;addItem(id,n);sfx('item');await say(`Ecco a te: ${ITEMS[id].name} x${n}. Grazie!`);if(id==='sfera'&&n>=10){addItem('sferaplus');await say('Per un acquisto così grande, ti regalo anche una Sfera Plus!')}}pop(bd)}}
-  else if(i===1){let sel=0;while(true){const ids=Object.keys(G.bag).filter(k=>ITEMS[k].price>0);if(!ids.length){await say('Non hai niente da vendere.');break}
+    if(n>0){G.money-=n*pr;addItem(id,n);sfx('item');await say(...T('bea.acquisto',{oggetto:ITEMS[id].name,quantita:n}));if(id==='sfera'&&n>=10){addItem('sferaplus');await say(...T('bea.regalo'))}}pop(bd)}}
+  else if(i===1){let sel=0;while(true){const ids=Object.keys(G.bag).filter(k=>ITEMS[k].price>0);if(!ids.length){await say(...T('bea.niente'));break}
     const me=new Menu({items:ids.map(k=>({t:`${ITEMS[k].name} x${G.bag[k]}`,r:(ITEMS[k].price>>1)+' ✦'})),x:4,y:18,w:232,maxRows:9,sel,full:true,under:c=>bagBg(c,'Vendi')});
     const k=await run(me);sel=me.sel;if(k<0)break;const id=ids[k],pr=ITEMS[id].price>>1;const bd=push(new Static(c=>bagBg(c,'Vendi')));
-    const n=await run(new Qty(G.bag[id],pr,ITEMS[id].name));if(n>0){G.bag[id]-=n;if(G.bag[id]<=0)delete G.bag[id];G.money+=n*pr;sfx('item');await say(`Hai venduto ${ITEMS[id].name} x${n} per ${n*pr} ✦.`)}pop(bd)}}
+    const n=await run(new Qty(G.bag[id],pr,ITEMS[id].name));if(n>0){G.bag[id]-=n;if(G.bag[id]<=0)delete G.bag[id];G.money+=n*pr;sfx('item');await say(...T('bea.vendita',{oggetto:ITEMS[id].name,quantita:n,soldi:n*pr}))}pop(bd)}}
   else break}
- await say('Commessa Bea: Torna presto!')}
-async function nurseFlow(){await say('Infermiera Lia: Benvenuto al Centro Cura!');
- if(await ask('Vuoi che le tue creature si riposino?')){await say('Affidami la tua squadra per un momento...');sfx('heal');
+ await say(...T('bea.arrivederci'))}
+async function nurseFlow(){await say(...T('lia.benvenuto'));
+ if(await ask(T1('lia.domanda'))){await say(...T('lia.attesa'));sfx('heal');
   await run(new Anim(80,null,(c,t)=>{for(let i=0;i<G.party.length;i++){const on=Math.floor(t*80/8)>i;drawBall(c,W/2-35+i*14,40,4);if(on){ell(c,W/2-35+i*14,40,6,6,`rgba(255,180,210,${.4+.3*Math.sin(frameCount/3)})`)}}}));
-  healAll();G.ret={map:'borgo',x:15,y:5};saveGame();await say('Ecco fatto! Le tue creature sono in piena forma.','Torna quando vuoi!')}else await say('Torna quando vuoi!')}
-async function noraFlow(){await say('Erborista Nora: Hai l\'aria stanca! Le mie erbe del bosco fanno miracoli.');sfx('heal');healAll();await say('La tua squadra è di nuovo in piena forma!','Di notte qui intorno vedo spesso una lucina danzare tra gli alberi...')}
+  healAll();G.ret={map:'borgo',x:15,y:5};saveGame();await say(...T('lia.fatto'))}else await say(...T('lia.rifiuto'))}
+async function noraFlow(){await say(...T('nora.cura'));sfx('heal');healAll();await say(...T('nora.fatto'))}
 async function eldaFlow(){
- if(!G.flags.lanterna){await say('Nonna Elda: Oh, un giovane allenatore! Sai, le grotte sono così buie...','Prendi questa vecchia lanterna. A me non serve più.');addItem('lanterna');G.flags.lanterna=true;sfx('item');await say(`${G.name} ha ricevuto la Lanterna!`,'Nonna Elda: Con questa vedrai molto meglio nella Grotta Eco.');return}
- const m=G.party[0];if(!m){await say('Nonna Elda: Torna a trovarmi con una creatura, caro.');return}
- const f=m.friend,t=f>=200?'ti adora!':f>=150?'si fida ciecamente di te.':f>=110?'ti vuole molto bene.':f>=85?'si sta affezionando a te.':'ti conosce ancora poco.';
- await say(`Nonna Elda: Vediamo... ${nm(m)} ${t}`,'Alcune creature si evolvono solo quando il legame è fortissimo. Falle lottare, falle crescere, portale a spasso!')}
+ if(!G.flags.lanterna){await say(...T('elda.lanterna'));addItem('lanterna');G.flags.lanterna=true;sfx('item');await say(...T('elda.lanterna_ricevuta'));return}
+ const m=G.party[0];if(!m){await say(...T('elda.senza_creature'));return}
+ const f=m.friend,lv=f>=200?5:f>=150?4:f>=110?3:f>=85?2:1;
+ await say(...T('elda.legame',{creatura:nm(m),legame:T1('elda.legame_'+lv)}))}
 async function pcFlow(){sfx('ok');await say(`${G.name} accende il PC.`);
  const sorts=['Numero','Livello','Elemento','Rarità'];
  while(true){const i=await run(new Menu({items:['Deposita creatura','Ritira creatura','Libera creatura',`Ordina: ${sorts[G.boxSort]}`,'Spegni'],x:8,y:8,w:150,under:c=>textBox(c,`Deposito: ${G.box.length} creature · Squadra: ${G.party.length}/6`)}));
@@ -1142,36 +1242,36 @@ async function boxPick(title){if(!G.box.length){await say('Il Deposito è vuoto.
  return run(new Menu({items:G.box.map(m=>({t:`${nm(m)}${m.shiny?'★':''}`,r:'Lv'+m.lvl})),x:4,y:18,w:140,maxRows:12,full:true,under:c=>bagBg(c,title),
   over:(c,me)=>{const m=G.box[me.sel];box(c,148,18,88,170);drawCreature(c,m.sp,192,96,1,{shiny:m.shiny});txt(c,nm(m),192,104,'#23263a',8,{b:true,al:'center'});let y=118;for(const t of SP(m).types){typeBadge(c,t,156,y);y+=11}txt(c,'Lv '+m.lvl,156,y+2,'#444',7);txt(c,`PS ${m.hp}/${maxHp(m)}`,156,y+12,'#444',7);txt(c,SP(m).rar,156,y+22,'#444',7);txt(c,'Natura: '+NATURES[m.nat][0],156,y+32,'#444',7)}}))}
 async function boulderFlow(){const rock=G.party.find(m=>m.hp>0&&SP(m).types.includes('Roccia'));G.flags.sawBoulder=true;
- if(!rock){await say('Un enorme masso blocca il passaggio.','Una creatura di tipo Roccia potrebbe riuscire a frantumarlo...');return}
- if(await ask(`Un enorme masso blocca il passaggio. Vuoi che ${nm(rock)} provi a frantumarlo?`)){sfx('hit2');await wait(20);G.flags.boulder=true;await say(`${nm(rock)} ha frantumato il masso! Il passaggio è libero.`)}}
-async function aurorionFlow(){if(!isNight()){await say('Una luce tenue danza tra le rocce... e svanisce.','Forse si mostra solo quando cala la notte.');return}
- await say('Una creatura splendente ti osserva in silenzio...','Le sue ali brillano come l\'aurora!');sfx('enc');
+ if(!rock){await say(...T('masso.blocco'));return}
+ if(await ask(T1('masso.domanda',{creatura:nm(rock)}))){sfx('hit2');await wait(20);G.flags.boulder=true;await say(...T('masso.frantumato',{creatura:nm(rock)}))}}
+async function aurorionFlow(){if(!isNight()){await say(...T('aurorion.giorno'));return}
+ await say(...T('aurorion.notte'));sfx('enc');
  const r=await battle({wild:makeMon(16,25,{noShiny:true})});
- if(r==='caught')G.flags.aurorion=true;else if(r==='lose')await whiteout();else await say('Aurorion è svanito in un lampo di luce... Forse tornerà la prossima notte.')}
+ if(r==='caught')G.flags.aurorion=true;else if(r==='lose')await whiteout();else await say(...T('aurorion.fuga'))}
 
 /* ---------------- Prof. Viola: inizio storia ---------------- */
 async function profFlow(){
  if(!G.flags.starter){
-  await say(`Prof. Viola: Eccoti, ${G.name}! Benvenuto nel mio laboratorio.`,'Su quel tavolo ci sono tre creature in cerca di un compagno di viaggio.','Scegline una: sarà la tua prima compagna d\'avventura!');
-  let sp=0;while(!sp){const i=await run(new Menu({items:['Fiammino','Gocciolo','Germoglio'],x:158,y:8,w:78,cancel:false,under:c=>textBox(c,'Quale creatura scegli?'),
+  await say(...T('prof.benvenuto'));
+  let sp=0;while(!sp){const i=await run(new Menu({items:['Fiammino','Gocciolo','Germoglio'],x:158,y:8,w:78,cancel:false,under:c=>textBox(c,T1('prof.scelta')),
    over:(c,me)=>{const s=[1,3,5][me.sel],S=SPECIES[s];box(c,4,8,150,128);ell(c,79,112,40,8,'#d8ecc4');drawCreature(c,s,79,110,1.7);txt(c,S.name,12,13,'#23263a',9,{b:true});typeBadge(c,S.types[0],12,26);wrap(S.desc,136,7).slice(0,2).forEach((l,j)=>txt(c,l,12,116+j*9,'#555',7))}}));
-   const s=[1,3,5][i];if(await ask(`Vuoi scegliere ${SPECIES[s].name}, la creatura di tipo ${SPECIES[s].types[0]}?`))sp=s}
+   const s=[1,3,5][i];if(await ask(T1('prof.conferma',{creatura:SPECIES[s].name,tipo:SPECIES[s].types[0]})))sp=s}
   const m=makeMon(sp,5,{noShiny:true});G.party.push(m);dexCatch(sp);G.flags.starter=true;sfx('catch');
-  await say(`${G.name} ha ricevuto ${nm(m)}!`);
+  await say(...T('prof.ricevuta',{creatura:nm(m)}));
   const rs={1:3,3:5,5:1}[sp];G.flags.rivalSp=rs;dexSee(rs);
-  await say(`Teo: Allora io prendo ${SPECIES[rs].name}! Ha un vantaggio sul tuo, eh eh.`,'Teo: Dai, vediamo subito chi è il più forte!');
-  const r=await battle({trainer:{name:'Rivale Teo',team:[[rs,5]],money:20,noLose:true,lose:'Teo: Uffa! Ho scelto la creatura sbagliata?'}});
+  await say(...T('teo.scelta',{creatura_teo:SPECIES[rs].name}));
+  const r=await battle({trainer:{name:'Rivale Teo',team:[[rs,5]],money:20,noLose:true,lose:T('teo.lab_sconfitto')}});
   healAll();
-  if(r!=='win')await say('Teo: Ah ah! Ho vinto io! Ma non te la prendere, è solo l\'inizio.');
-  await say('Prof. Viola: Che lotta emozionante! Ecco, prendete anche questi.');
+  if(r!=='win')await say(...T('teo.lab_vittoria'));
+  await say(...T('prof.doni'));
   addItem('sfera',5);addItem('pozione',3);sfx('item');
-  await say(`${G.name} ha ricevuto 5 Sfere e 3 Pozioni!`,'Prof. Viola: E questa è l\'Enciclopedia: registra ogni creatura che incontri o catturi.','Teo: Io parto subito! Ci vediamo nel bosco!');
+  await say(`${G.name} ha ricevuto 5 Sfere e 3 Pozioni!`,...T('prof.enciclopedia'),...T('teo.partenza'));
   G.flags.teoLeft=true;
-  await say('Prof. Viola: A nord del borgo c\'è il Bosco Sussurro. Indebolisci le creature e lancia una Sfera per catturarle.','Premi MENU per vedere squadra, borsa, missioni e mappa. Buona fortuna!');
+  await say(...T('prof.consigli'));
   saveGame();return}
  const s=seenCount(),k=caughtCount();
- const hint=!G.flags.tr_teo2?'Il Bosco Sussurro è perfetto per allenarsi. Ricorda: certe creature appaiono solo di notte o con la pioggia!':!G.flags.tr_rocca?'Teo mi ha parlato di strani individui in grigio nella Grotta Eco. Porta con te una creatura di tipo Roccia: là dentro ci sono massi enormi.':!G.flags.aurorion?'Hai fermato l\'Ordine Grigio! Si dice che di notte, nella sala a ovest della grotta, appaia una luce leggendaria...':'Aurorion... incredibile! Sei un vero ricercatore di creature.';
- await say(`Prof. Viola: Ciao ${G.name}! L'Enciclopedia segna ${s} creature viste e ${k} catturate.`,hint,'Lascia che la tua squadra si riposi un momento.');healAll();sfx('heal')}
+ const hint=T(!G.flags.tr_teo2?'prof.consiglio_bosco':!G.flags.tr_rocca?'prof.consiglio_grotta':!G.flags.aurorion?'prof.consiglio_leggenda':'prof.consiglio_finale');
+ await say(...T('prof.progresso',{viste:s,catturate:k}),...hint,...T('prof.riposo'));healAll();sfx('heal')}
 
 /* =========================================================
    MISSIONI

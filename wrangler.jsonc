@@ -5,6 +5,8 @@
   "compatibility_date": "2025-06-01",
   // pubblica il gioco all'indirizzo <nome>.<tuo-sottodominio>.workers.dev
   "workers_dev": true,
+  // foglio Google con i testi dei personaggi ("Cronache di Aurora · Testi del gioco")
+  "vars": { "SHEET_ID": "1FGyrRuLG_ytb6gYO9hkUzZyHVOEUE-o0six6saofHuM" },
   "assets": { "directory": "./public", "binding": "ASSETS" },
   "durable_objects": {
     "bindings": [{ "name": "ROOMS", "class_name": "Room" }]

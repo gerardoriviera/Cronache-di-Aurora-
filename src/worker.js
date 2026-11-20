@@ -22,9 +22,30 @@ const MAX_PRESENCE = 8 * 1024;   // byte di presence per giocatore
 const MAX_KEYS = 16;
 const MAX_PLAYERS = 16;
 
+/* Testi dei personaggi: il gioco li legge da /testi.csv, che arriva dal foglio Google
+   indicato in wrangler.jsonc (vars.SHEET_ID). Il foglio deve essere visibile a
+   "chiunque abbia il link". Se il foglio non risponde, il gioco usa i testi originali. */
+async function testi(env, ctx) {
+  if (!env.SHEET_ID) return new Response("", { status: 404 });
+  const cache = caches.default;
+  const key = new Request("https://cache.local/testi.csv");
+  const hit = await cache.match(key);
+  if (hit) return hit;
+  let g, body = "";
+  try {
+    g = await fetch(`https://docs.google.com/spreadsheets/d/${env.SHEET_ID}/export?format=csv&gid=0`, { redirect: "follow" });
+    if (g.ok) body = await g.text();
+  } catch { return new Response("", { status: 502 }); }
+  if (!g.ok || body.trimStart().startsWith("<")) return new Response("", { status: 502 });
+  const res = new Response(body, { headers: { "content-type": "text/csv; charset=utf-8", "cache-control": "public, max-age=30" } });
+  ctx.waitUntil(cache.put(key, res.clone()));
+  return res;
+}
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (url.pathname === "/testi.csv") return testi(env, ctx);
     const m = url.pathname.match(/^\/room\/([^/]+)$/);
     if (m) {
       const name = decodeURIComponent(m[1]);
