@@ -25,19 +25,39 @@ const MAX_PLAYERS = 16;
 /* Testi dei personaggi: il gioco li legge da /testi.csv, che arriva dal foglio Google
    indicato in wrangler.jsonc (vars.SHEET_ID). Il foglio deve essere visibile a
    "chiunque abbia il link". Se il foglio non risponde, il gioco usa i testi originali. */
-async function testi(env, ctx) {
-  if (!env.SHEET_ID) return new Response("", { status: 404 });
+async function leggiFoglio(id) {
+  // due indirizzi di esportazione di Google: se il primo non risponde con un CSV, prova il secondo
+  const urls = [
+    `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&sheet=Testi`,
+    `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=0`,
+  ];
+  const log = [];
+  for (const u of urls) {
+    try {
+      const g = await fetch(u, { redirect: "follow", headers: { "User-Agent": "Mozilla/5.0 (compatible; CronacheDiAurora/1.0)", "Accept": "text/csv,*/*" } });
+      const body = await g.text();
+      const csv = g.ok && !body.trimStart().startsWith("<") && /(^|,)"?ID"?,/i.test(body.slice(0, 200));
+      log.push({ url: u.replace(id, "…"), status: g.status, csv, inizio: body.slice(0, 80) });
+      if (csv) return { body, log };
+    } catch (e) { log.push({ url: u.replace(id, "…"), errore: String(e) }); }
+  }
+  return { body: null, log };
+}
+
+async function testi(request, env, ctx) {
+  const url = new URL(request.url);
+  if (!env.SHEET_ID) return new Response("SHEET_ID mancante in wrangler.jsonc", { status: 404 });
+  if (url.searchParams.has("diagnostica")) {
+    const r = await leggiFoglio(env.SHEET_ID);
+    return Response.json({ foglio_letto: !!r.body, righe: r.body ? r.body.split("\n").length - 1 : 0, tentativi: r.log });
+  }
   const cache = caches.default;
   const key = new Request("https://cache.local/testi.csv");
   const hit = await cache.match(key);
   if (hit) return hit;
-  let g, body = "";
-  try {
-    g = await fetch(`https://docs.google.com/spreadsheets/d/${env.SHEET_ID}/export?format=csv&gid=0`, { redirect: "follow" });
-    if (g.ok) body = await g.text();
-  } catch { return new Response("", { status: 502 }); }
-  if (!g.ok || body.trimStart().startsWith("<")) return new Response("", { status: 502 });
-  const res = new Response(body, { headers: { "content-type": "text/csv; charset=utf-8", "cache-control": "public, max-age=30" } });
+  const r = await leggiFoglio(env.SHEET_ID);
+  if (!r.body) return new Response("Foglio non leggibile", { status: 502 });
+  const res = new Response(r.body, { headers: { "content-type": "text/csv; charset=utf-8", "cache-control": "public, max-age=20" } });
   ctx.waitUntil(cache.put(key, res.clone()));
   return res;
 }
@@ -45,7 +65,7 @@ async function testi(env, ctx) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    if (url.pathname === "/testi.csv") return testi(env, ctx);
+    if (url.pathname === "/testi.csv") return testi(request, env, ctx);
     const m = url.pathname.match(/^\/room\/([^/]+)$/);
     if (m) {
       const name = decodeURIComponent(m[1]);

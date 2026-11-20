@@ -610,7 +610,7 @@ function applyTesti(csv){const rows=parseCSV(csv);if(!rows.length)return 0;const
  const ci=h.indexOf('id'),ni=h.findIndex(x=>x==='n.'||x==='n'||x==='riga'),ti=h.indexOf('testo');if(ci<0||ti<0)return 0;
  const groups={};for(const r of rows.slice(1)){const id=(r[ci]||'').trim(),tx=(r[ti]||'').trim();if(!id||!tx||!TESTI_IDX[id])continue;(groups[id]=groups[id]||[]).push([parseFloat(ni>=0?r[ni]:0)||0,tx.slice(0,400)])}
  let n=0;for(const[id,l]of Object.entries(groups)){TESTI_OVR[id]=l.sort((a,b)=>a[0]-b[0]).slice(0,12).map(x=>x[1]);n++}return n}
-(async()=>{try{if(window.claude||!/^https?:$/.test(location.protocol))return;const r=await fetch('/testi.csv',{cache:'no-store'});if(!r.ok)return;const n=applyTesti(await r.text());if(n)console.log('Testi dal foglio:',n)}catch(e){}})();
+const TESTI_PRONTI=(async()=>{try{if(window.claude||!/^https?:$/.test(location.protocol))return;const r=await fetch('/testi.csv?t='+Date.now(),{cache:'no-store'});if(!r.ok){console.warn('Testi dal foglio non disponibili:',r.status);return}const n=applyTesti(await r.text());console.log('Testi dal foglio:',n)}catch(e){console.warn('Testi dal foglio non disponibili',e)}})();
 
 function setupWorldData(){
  const F=k=>G.flags[k];
@@ -1352,7 +1352,7 @@ async function boot(){
   if(ch==='Continua'){if(loadGame()){setupWorldData();push(WORLD);UI.banner={text:map().name,t:150};return}continue}
   if(hasSave()){const bd=push(new Static(c=>{c.fillStyle='#0f1233';c.fillRect(0,0,W,H)}));const ok=await ask('Iniziare una nuova partita? Il salvataggio attuale verrà sovrascritto.');pop(bd);if(!ok)continue}
   await newGame();return}}
-async function newGame(){G=newState('?');setupWorldData();
+async function newGame(){await Promise.race([TESTI_PRONTI,new Promise(r=>setTimeout(r,2500))]);G=newState('?');setupWorldData();
  const bd=push(new Static(c=>{const g=c.createLinearGradient(0,0,0,H);g.addColorStop(0,'#1a1d3a');g.addColorStop(1,'#3a3470');c.fillStyle=g;c.fillRect(0,0,W,H);c.save();c.translate(W/2-24,30);c.scale(3,3);drawPerson(c,0,0,'down',LOOK.prof,0);c.restore();drawCreature(c,14,W/2+46,110,1)}));
  await say(...T('intro.benvenuto'));
  const names=['Ale','Sara','Leo','Nina','Max','Gaia'];const i=await run(new Menu({items:names,x:W-70,y:8,w:62,cancel:false,under:c=>textBox(c,T1('intro.nome'))}));G.name=names[i];
